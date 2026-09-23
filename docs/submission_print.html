@@ -403,13 +403,19 @@ flowchart TB
         <td><strong>형상 관리(Git)</strong></td>
         <td>Gitea</td>
         <td><code>gitea</code> / 1.22</td>
-        <td>클러스터 내부 사설 Git (Port <code>30082</code>, 저장소: <code>jaehee/osc-k8s-resume</code>)</td>
+        <td>클러스터 내부 사설 Git, Argo CD App(<code>gitea</code>)으로 배포/관리 (Port <code>30082</code>)</td>
       </tr>
       <tr>
         <td><strong>선언형 GitOps</strong></td>
         <td>Argo CD</td>
         <td><code>argocd</code> / v2.13.0</td>
-        <td>Git 저장소 상시 감시, Self-Heal &amp; Prune 자동 롤아웃 (Port <code>30081</code>)</td>
+        <td>3대 앱(<code>traefik</code>, <code>gitea</code>, <code>resume-web</code>) 전면 GitOps 자동화 (Self-Heal, Prune)</td>
+      </tr>
+      <tr>
+        <td><strong>인그레스(Ingress)</strong></td>
+        <td>Traefik Ingress Controller</td>
+        <td><code>traefik</code> / v3.7</td>
+        <td>Argo CD App(<code>traefik</code>) 공식 차트 배포, 단일 HTTP 80 L7 라우팅 &amp; IP AllowList</td>
       </tr>
       <tr>
         <td><strong>워크로드</strong></td>
@@ -428,12 +434,6 @@ flowchart TB
         <td>ConfigMap 2종</td>
         <td><code>resume</code></td>
         <td>HTML(18KB)과 CSS/JS 에셋을 분리하고 <code>subPath</code> 볼륨 마운트 적용</td>
-      </tr>
-      <tr>
-        <td><strong>인그레스(Ingress)</strong></td>
-        <td>Traefik Ingress Controller</td>
-        <td><code>traefik</code> / v3.7</td>
-        <td>단일 HTTP 80 포트 기반 L7 라우팅 및 사설망 IP AllowList 보안 미들웨어</td>
       </tr>
       <tr>
         <td><strong>서비스 노출</strong></td>
