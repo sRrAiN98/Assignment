@@ -522,7 +522,7 @@ service-resume</code></pre>
   </p>
 
   <!-- Section 6: Troubleshooting -->
-  <h2>6. 구축과정 및 시행착오 (실제 장애 3건)</h2>
+  <h2>6. 구축과정 및 시행착오 (실제 장애 2건)</h2>
   <blockquote>
     <strong>[지시사항]</strong> 구축 과정에서 발생한 장애 또는 시행착오를 1 건 이상 기술하시오. (증상, 원인, 조치 내용을 포함)
   </blockquote>
@@ -542,15 +542,6 @@ service-resume</code></pre>
       <li><strong>증상:</strong> HTML/에셋을 ConfigMap에 담을 때 <code>metadata.annotations: Too long: must have at most 262144 bytes</code> 에러 발생.</li>
       <li><strong>원인:</strong> <code>kubectl apply</code>가 매니페스트를 <code>last-applied-configuration</code> 어노테이션에 직렬화하려다 256KB 한도를 초과함.</li>
       <li><strong>조치:</strong> 1차로 Argo CD <code>ServerSideApply=true</code>를 적용하고, 2차로 HTML(18KB)과 CSS/JS 에셋을 별도 ConfigMap으로 쪼개어 Deployment에서 <code>subPath</code> 볼륨 마운트로 병합 주입함.</li>
-    </ul>
-  </div>
-
-  <div class="trouble-card">
-    <div class="trouble-title">사례 3. Argo CD Application 리포지토리 로컬 심링크(Symlink) 경로 이탈 차단 에러</div>
-    <ul>
-      <li><strong>증상:</strong> Argo CD 동기화 중 <code>repository contains symlink target outside repository</code> 에러 발생.</li>
-      <li><strong>원인:</strong> Argo CD repo-server의 보안 정책상 저장소 루트 밖을 가리키는 심볼릭 링크 접근이 엄격히 차단됨.</li>
-      <li><strong>조치:</strong> 심링크 의존성을 완전히 제거하고, 독립된 클린 저장소(<code>jaehee/osc-k8s-resume</code>)로 물리적 분리 배치함.</li>
     </ul>
   </div>
 

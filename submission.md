@@ -211,7 +211,7 @@ kubectl -n resume get deployment resume-web -o jsonpath='{.spec.template.spec.se
 
 ---
 
-## 6. 구축과정 및 시행착오 (실제 클러스터 구축 중 발생한 장애 3건)
+## 6. 구축과정 및 시행착오 (실제 클러스터 구축 중 발생한 장애 2건)
 
 > **[지시사항] 구축 과정에서 발생한 장애 또는 시행착오를 1 건 이상 기술하시오. (증상, 원인, 조치 내용을 포함)**
 
@@ -227,8 +227,3 @@ kubectl -n resume get deployment resume-web -o jsonpath='{.spec.template.spec.se
   1. 1차 조치로 Argo CD 동기화 옵션에 `ServerSideApply=true`를 활성화하여 어노테이션 한도를 우회 적용.
   2. 근본적인 아키텍처 개선을 위해 자주 변경되는 순수 HTML(18KB)을 담는 `resume-web-html`과 정적 에셋 전용 `resume-web-assets` ConfigMap으로 완전히 분리함.
   3. Deployment에서 두 ConfigMap을 `subPath` 볼륨 마운트로 Nginx 웹 디렉토리에 결합 주입하여 성능과 안정성을 모두 확보함.
-
-### 사례 3. Argo CD Application 리포지토리 로컬 심링크(Symlink) 경로 이탈 차단 에러
-- **증상**: Argo CD가 Git 저장소를 클론한 뒤 Helm 템플릿을 렌더링하는 과정에서 `repository contains symlink target outside repository` 에러를 반환하며 동기화 실패.
-- **원인**: 보안상 Argo CD repo-server는 악의적인 호스트 파일 탈취를 방지하기 위해 Git 저장소 루트 밖을 가리키는 심볼릭 링크의 접근을 엄격히 차단함.
-- **조치**: 심볼릭 링크 구조를 제거하고, 클린한 독립 저장소(`jaehee/osc-k8s-resume`)로 코드를 물리적으로 분리 배치하여 Argo CD의 보안 정책을 온전히 준수함.

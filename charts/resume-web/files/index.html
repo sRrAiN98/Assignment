@@ -848,7 +848,7 @@ charts/resume-web/
     <section class="section-pad bg-white" id="troubleshooting">
       <div class="container">
         <p class="section-kicker">Cluster Setup Troubleshooting</p>
-        <h2 class="section-title display-6">본 클러스터 구축 중 발생한 시행착오 및 해결 (3건)</h2>
+        <h2 class="section-title display-6">본 클러스터 구축 중 발생한 시행착오 및 해결 (2건)</h2>
         <p class="section-intro mb-5">기술인터뷰 과제 요구사항에 따라, 이번 Hyper-V 3노드 Kubernetes 및 GitOps 클러스터를 직접 구성하면서 마주했던 실제 장애 증상과 원인, 그리고 조치 내용을 기술합니다.</p>
 
         <!-- Trouble 1 -->
@@ -892,28 +892,6 @@ charts/resume-web/
               <strong class="text-dark d-block">조치 및 결과 (Action &amp; Result):</strong>
               <strong>1차:</strong> Argo CD 동기화 정책에 <code>ServerSideApply=true</code>를 부여하여 서버 사이드 어플라이 방식으로 전환.<br>
               <strong>2차(근본 리팩토링):</strong> 대용량 정적 번들(CSS/JS)과 선언적 HTML(18KB)을 독립된 ConfigMap으로 분리하고, Deployment에서 <code>subPath</code> 볼륨 마운트 구조로 Nginx에 결합하도록 Helm 차트를 리팩토링하여 etcd 부하를 원천 차단하고 무중단 배포 체계 완성.
-            </div>
-          </div>
-        </article>
-
-        <!-- Trouble 3 -->
-        <article class="trouble-box">
-          <h4 class="h5 fw-bold text-dark mb-3">
-            <span class="badge text-bg-danger trouble-badge">장애 사례 3 (GitOps 보안 격리)</span>
-            Argo CD GitOps 배포 시 리포지토리 내 외부 심링크(Out-of-bounds symlink) 차단 에러
-          </h4>
-          <div class="row g-2 small text-secondary">
-            <div class="col-md-4">
-              <strong class="text-dark d-block">증상 (Symptom):</strong>
-              Argo CD repo-server가 Git 저장소를 클론한 후 Helm 차트 매니페스트 렌더링 단계에서 <code>repository contains out-of-bounds symlinks</code> 에러를 뿜으며 애플리케이션 생성 거부.
-            </div>
-            <div class="col-md-4">
-              <strong class="text-dark d-block">원인 (Root Cause):</strong>
-              배포 자동화 작업 중 프로젝트 디렉토리에 생성되었던 가상환경 심링크(<code>.venv</code>)가 리포지토리 루트 바깥(<code>/opt/ansible-venv</code>)을 참조하고 있어, Argo CD repo-server의 보안 격리 정책(Path Traversal 방지)에 의해 거부됨.
-            </div>
-            <div class="col-md-4">
-              <strong class="text-dark d-block">조치 및 결과 (Action &amp; Result):</strong>
-              Git 인덱스에서 외부 참조 심링크를 완전히 제거하고 <code>.gitignore</code>에 명시한 뒤 저장소를 갱신하여, Argo CD가 보안 위협 없이 Helm 차트를 정상 파싱하고 배포를 완료하도록 조치.
             </div>
           </div>
         </article>
