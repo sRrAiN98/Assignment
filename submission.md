@@ -122,7 +122,8 @@ flowchart TB
         sa["ServiceAccount: service-resume\n(필수 요구조건 반영)"]
         cmHtml["ConfigMap: resume-web-html (18KB)\nsubPath: index.html"]
         cmAsset["ConfigMap: resume-web-assets\nsubPath: bootstrap css/js"]
-        svc["NodePort Service: resume-web-svc\nNodePort: 30080 -> Port 80"]
+        svc["Service: resume-web\nPort 80 (NodePort 30080)"]
+        ingress["Traefik Ingress Controller (L7)\n단일 HTTP 80 진입점 라우팅\n사설망 IP 보안 격리 (Middleware)"]
     end
 
     developer -->|"Git Push (Helm Chart)"| gitea
@@ -133,6 +134,9 @@ flowchart TB
     sched -->|"파드 스케줄링"| kubelet1
     sched -->|"파드 스케줄링"| kubelet2
 
+    ingress -->|"L7 Routing (Host/Path)"| svc
+    svc --> pod1
+    svc --> pod2
     pod1 -.-> sa
     pod2 -.-> sa
     cmHtml -.->|"Volume Mount (subPath)"| pod1
@@ -155,10 +159,11 @@ flowchart TB
 | **컨테이너 런타임** | containerd | v2.2.1 | `SystemdCgroup=true`, CRI 플러그인 활성화 |
 | **형상 관리(Git)** | Gitea | `gitea` / 1.22 | 클러스터 내부 사설 Git 서버, Helm Chart 소스코드 버전 관리 (Port `30082`) |
 | **선언형 CD** | Argo CD | `argocd` / v2.13.0 | Git 저장소 자동 추적(Self-Heal, Prune), 선언형 GitOps 파이프라인 (Port `30081`) |
+| **인그레스(Ingress)** | Traefik Ingress Controller | `traefik` / v3.7 | 단일 HTTP 80 포트 기반 L7 라우팅 및 사설망 IP AllowList 보안 미들웨어 |
 | **워크로드** | `resume-web` Deployment | `resume` (2 Replicas) | `k8s-w1`, `k8s-w2`에 고가용성 분산 배치, 비특권(Non-root) 실행, Probe 상태 검증 |
 | **서비스 계정** | **service-resume** | `resume` | **과제 필수 요구사항 반영**: 워크로드 파드에 바인딩된 전용 ServiceAccount |
 | **볼륨/설정** | ConfigMap 2종 | `resume` | HTML(18KB)과 CSS/JS 에셋을 분리하고 `subPath` 볼륨 마운트로 etcd 부하 방지 |
-| **서비스 노출** | NodePort Service | `resume` | 외부 접근 포트 `30080`을 통해 2개 워커 노드의 파드로 HTTP 트래픽 분산 |
+| **서비스 노출** | NodePort & Ingress | `resume` | Traefik Ingress(Port 80/30000) 및 NodePort(30080)를 통해 워커 파드로 분산 |
 
 ---
 
@@ -168,11 +173,12 @@ flowchart TB
 
 | 서비스명 | 접속 주소 (URL) | 인증 계정 정보 | 비고 |
 | :--- | :--- | :--- | :--- |
-| **이력서 웹서비스 (NodePort)** | **`http://192.168.56.21:30080`** | 별도 인증 없음 | 워커 2대 분산 서빙, 실무 포트폴리오 9건 수록 |
+| **이력서 웹 (Traefik Ingress)** | **`http://192.168.56.21:30000`** (또는 외부 도메인:80) | 별도 인증 없음 | Traefik 단일 진입점 라우팅, 포트폴리오 9건 수록 |
+| **이력서 웹 (Direct NodePort)** | `http://192.168.56.21:30080` | 별도 인증 없음 | 워커 2대 파드로 로드밸런싱 |
 | **과제 제출 공식 저장소 (GitHub)** | **`https://github.com/sRrAiN98/Assignment`** | 공개 저장소 | 전체 소스코드, Ansible IaC, Helm 차트, 보고서 PDF 수록 |
 | **상시 확인용 웹 미러 (GitHub Pages)** | **`https://sRrAiN98.github.io/Assignment/`** | 공개 웹페이지 | 로컬 PC 오프라인 시 24시간 열람 가능한 라이브 웹 미러 |
-| **Gitea 사설 GitOps 저장소** | **`http://192.168.56.21:30082`** | 인터뷰 현장 시연 시 제공 | 클러스터 내부 저장소: `jaehee/osc-k8s-resume` |
-| **Argo CD 관리 콘솔** | **`http://192.168.56.21:30081`** | 인터뷰 현장 시연 시 제공 | GitOps 자동 동기화 (`Synced` / `Healthy`) |
+| **Gitea 사설 GitOps 저장소** | `http://192.168.56.21:30082` | 인터뷰 현장 시연 시 제공 | Traefik IP Allowlist 적용 (내부 사설망만 허용) |
+| **Argo CD 관리 콘솔** | `http://192.168.56.21:30081` | 인터뷰 현장 시연 시 제공 | Traefik IP Allowlist 적용 (내부 사설망만 허용) |
 
 배포된 웹 애플리케이션은 실제 실무 프로젝트 9건, 핵심 기술 스택, 보유 자격 5종 및 이번 과제 실증 내용을 정리한 기술 포트폴리오입니다. 화면 내 Helm 차트 아키텍처 토글 버튼을 통해 패키징 흐름과 볼륨 마운트 구조를 직접 확인할 수 있으며, 상세한 물리 및 논리 구성도는 본 보고서 1~2절과 `docs/ARCHITECTURE.md`에 수록되어 있습니다.
 

@@ -430,10 +430,16 @@ flowchart TB
         <td>HTML(18KB)과 CSS/JS 에셋을 분리하고 <code>subPath</code> 볼륨 마운트 적용</td>
       </tr>
       <tr>
+        <td><strong>인그레스(Ingress)</strong></td>
+        <td>Traefik Ingress Controller</td>
+        <td><code>traefik</code> / v3.7</td>
+        <td>단일 HTTP 80 포트 기반 L7 라우팅 및 사설망 IP AllowList 보안 미들웨어</td>
+      </tr>
+      <tr>
         <td><strong>서비스 노출</strong></td>
-        <td>NodePort Service</td>
+        <td>NodePort &amp; Ingress</td>
         <td><code>resume</code></td>
-        <td>외부 포트 <code>30080</code>을 통해 2개 워커 노드로 HTTP 트래픽 분산</td>
+        <td>Traefik Ingress(Port 80/30000) 및 NodePort(30080)를 통해 워커 파드로 분산</td>
       </tr>
     </tbody>
   </table>
@@ -457,10 +463,16 @@ flowchart TB
     </thead>
     <tbody>
       <tr>
-        <td><strong>이력서 웹서비스 (NodePort)</strong></td>
-        <td><strong><code>http://192.168.56.21:30080</code></strong></td>
+        <td><strong>이력서 웹 (Traefik Ingress)</strong></td>
+        <td><strong><code>http://192.168.56.21:30000</code></strong> (또는 외부 도메인:80)</td>
         <td>별도 인증 없음</td>
-        <td>워커 2대 분산 서빙, 실무 포트폴리오 9건 수록</td>
+        <td>Traefik 단일 진입점 라우팅, 포트폴리오 9건 수록</td>
+      </tr>
+      <tr>
+        <td><strong>이력서 웹 (Direct NodePort)</strong></td>
+        <td><code>http://192.168.56.21:30080</code></td>
+        <td>별도 인증 없음</td>
+        <td>워커 2대 파드로 로드밸런싱</td>
       </tr>
       <tr>
         <td><strong>과제 제출 공식 저장소 (GitHub)</strong></td>
@@ -476,18 +488,19 @@ flowchart TB
       </tr>
       <tr>
         <td><strong>Gitea 사설 GitOps 저장소</strong></td>
-        <td><strong><code>http://192.168.56.21:30082</code></strong></td>
+        <td><code>http://192.168.56.21:30082</code></td>
         <td>인터뷰 현장 시연 시 제공</td>
-        <td>클러스터 내부 저장소: <code>jaehee/osc-k8s-resume</code></td>
+        <td>Traefik IP Allowlist 적용 (내부 사설망만 허용)</td>
       </tr>
       <tr>
         <td><strong>Argo CD 관리 콘솔</strong></td>
-        <td><strong><code>http://192.168.56.21:30081</code></strong></td>
+        <td><code>http://192.168.56.21:30081</code></td>
         <td>인터뷰 현장 시연 시 제공</td>
-        <td>GitOps 자동 동기화 (Synced / Healthy)</td>
+        <td>Traefik IP Allowlist 적용 (내부 사설망만 허용)</td>
       </tr>
     </tbody>
   </table>
+
 
   <!-- Section 4: Service Account -->
   <h2>4. 구축된 Service Account</h2>
