@@ -57,12 +57,12 @@ readinessProbe:
     port: http
 
 ingress:
-  enabled: false
-  className: "nginx"
-  annotations: {}
+  enabled: true
+  className: "traefik"
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
   hosts:
-    - host: resume.local
-      paths:
+    - paths:
         - path: /
           pathType: Prefix
   tls: []
