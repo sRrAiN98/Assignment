@@ -17,14 +17,6 @@
       args:
         creates: /usr/local/bin/helm
 
-    - name: Gitea 사설 저장소 매니페스트 배포 (NodePort 30082)
-      ansible.builtin.command: kubectl apply -f /home/ubuntu/osc-k8s-resume/manifests/gitea.yaml
-      environment:
-        KUBECONFIG: /etc/kubernetes/admin.conf
-      register: gitea_deploy
-      changed_when: "'created' in gitea_deploy.stdout or 'configured' in gitea_deploy.stdout"
-      failed_when: false
-
     - name: Argo CD Helm 저장소 추가 및 업데이트
       ansible.builtin.command: "{{ item }}"
       loop:
@@ -46,14 +38,28 @@
       register: argocd_install
       changed_when: "'has been upgraded' in argocd_install.stdout or 'has been installed' in argocd_install.stdout"
 
-    - name: Argo CD Application 매니페스트 적용 (resume-web)
-      ansible.builtin.command: kubectl apply -f /home/ubuntu/osc-k8s-resume/argocd/application-resume.yaml
+    - name: GitOps Applications 일괄 적용 (Traefik, Gitea, Resume-Web)
+      ansible.builtin.command: kubectl apply -f /home/ubuntu/osc-k8s-resume/argocd/
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
-      register: argo_app_apply
-      changed_when: "'created' in argo_app_apply.stdout or 'configured' in argo_app_apply.stdout"
+      register: argo_apps_apply
+      changed_when: "'created' in argo_apps_apply.stdout or 'configured' in argo_apps_apply.stdout"
 
-    - name: resume 네임스페이스 및 파드 배포 롤아웃 확인
+    - name: Traefik Ingress 컨트롤러 파드 배포 롤아웃 확인
+      ansible.builtin.command: kubectl -n traefik rollout status deployment/traefik --timeout=5m
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      failed_when: false
+
+    - name: Gitea 파드 배포 롤아웃 확인
+      ansible.builtin.command: kubectl -n gitea rollout status deployment/gitea --timeout=5m
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false
+      failed_when: false
+
+    - name: Resume-Web 네임스페이스 및 파드 배포 롤아웃 확인
       ansible.builtin.command: kubectl -n resume rollout status deployment/resume-web --timeout=5m
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf

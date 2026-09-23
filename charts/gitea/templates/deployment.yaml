@@ -1,25 +1,7 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: gitea
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: gitea-data
-  namespace: gitea
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gitea
-  namespace: gitea
   labels:
     app: gitea
 spec:
@@ -34,8 +16,8 @@ spec:
     spec:
       containers:
         - name: gitea
-          image: gitea/gitea:1.22.6
-          imagePullPolicy: IfNotPresent
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
             - name: USER_UID
               value: "1000"
@@ -50,7 +32,7 @@ spec:
             - name: GITEA__server__DISABLE_SSH
               value: "false"
             - name: GITEA__server__SSH_PORT
-              value: "30022"
+              value: "{{ .Values.service.sshNodePort }}"
             - name: GITEA__database__DB_TYPE
               value: "sqlite3"
             - name: GITEA__database__PATH
@@ -61,40 +43,14 @@ spec:
               value: "false"
           ports:
             - name: http
-              containerPort: 3000
+              containerPort: {{ .Values.service.httpPort }}
             - name: ssh
-              containerPort: 22
+              containerPort: {{ .Values.service.sshPort }}
           resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
+            {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: data
               mountPath: /data
       volumes:
         - name: data
           emptyDir: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: gitea-http
-  namespace: gitea
-  labels:
-    app: gitea
-spec:
-  type: NodePort
-  selector:
-    app: gitea
-  ports:
-    - name: http
-      port: 3000
-      targetPort: 3000
-      nodePort: 30082
-    - name: ssh
-      port: 22
-      targetPort: 22
-      nodePort: 30022
