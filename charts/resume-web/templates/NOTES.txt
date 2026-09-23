@@ -1,0 +1,6 @@
+Resume URL from the Windows Hyper-V host:
+  http://192.168.56.21:{{ .Values.service.nodePort }}
+
+Verify the ServiceAccount:
+  kubectl -n {{ .Release.Namespace }} get deploy {{ include "resume-web.fullname" . }} -o jsonpath='{.spec.template.spec.serviceAccountName}{"\n"}'
+  kubectl -n {{ .Release.Namespace }} get serviceaccount {{ include "resume-web.serviceAccountName" . }} -o jsonpath='{.automountServiceAccountToken}{"\n"}'

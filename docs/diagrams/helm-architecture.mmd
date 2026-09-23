@@ -1,0 +1,50 @@
+flowchart LR
+    %% =========================================================================
+    %% Kubernetes on Resume Presentation - Helm 차트 패키징 및 렌더링 흐름도
+    %% =========================================================================
+
+    subgraph HelmInputs ["Helm 선언형 소스 입력"]
+        chartMeta["Chart.yaml\n(name: resume-web, v0.1.0)"]
+        valuesYaml["values.yaml\n(replicas: 2, SA: service-resume)"]
+        staticFiles["files/\n• index.html (18KB)\n• bootstrap.min.css\n• bootstrap.bundle.js"]
+    end
+
+    subgraph HelmEngine ["Helm 렌더링 엔진"]
+        tplRender["go-template 렌더링 엔진"]
+    end
+
+    subgraph GeneratedManifests ["생성된 Kubernetes 선언 매니페스트"]
+        saManifest["ServiceAccount\nservice-resume"]
+        cmHtmlManifest["ConfigMap\nresume-web-html"]
+        cmAssetsManifest["ConfigMap\nresume-web-assets"]
+        deployManifest["Deployment\nresume-web (2 Replicas)"]
+        svcManifest["Service\nNodePort 30080"]
+    end
+
+    subgraph GitOpsReconcile ["Argo CD GitOps 동기화"]
+        argoSync["Argo CD Application\n(Auto-Sync & Server-Side Apply)"]
+    end
+
+    subgraph ClusterExecution ["Kubernetes 클러스터 런타임 (/usr/share/nginx/html)"]
+        pod1["Pod: resume-web-1 (k8s-w1)\nUID 101 non-root"]
+        pod2["Pod: resume-web-2 (k8s-w2)\nUID 101 non-root"]
+    end
+
+    chartMeta --> tplRender
+    valuesYaml --> tplRender
+    staticFiles --> tplRender
+
+    tplRender --> saManifest
+    tplRender --> cmHtmlManifest
+    tplRender --> cmAssetsManifest
+    tplRender --> deployManifest
+    tplRender --> svcManifest
+
+    saManifest --> argoSync
+    cmHtmlManifest --> argoSync
+    cmAssetsManifest --> argoSync
+    deployManifest --> argoSync
+    svcManifest --> argoSync
+
+    argoSync ==>|"배포 및 subPath 마운트"| pod1
+    argoSync ==>|"배포 및 subPath 마운트"| pod2

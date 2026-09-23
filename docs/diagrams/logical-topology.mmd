@@ -1,0 +1,65 @@
+flowchart TB
+    %% =========================================================================
+    %% Kubernetes on Resume Presentation - 논리 구성도 & GitOps 파이프라인
+    %% =========================================================================
+
+    subgraph GitOpsLayer ["형상 관리 및 선언형 GitOps 계층"]
+        engineer["DevOps 엔지니어 (장재희)"]
+        gitea["사설 Git 저장소 (Gitea)\nhttp://192.168.56.21:30082\nrepo: jaehee/osc-k8s-resume.git"]
+        argo["Argo CD Controller & Repo Server\nhttp://192.168.56.21:30081\nApp: resume-web (Auto Sync / Self-Heal)"]
+    end
+
+    subgraph ControlPlaneLayer ["Control Plane 노드 (k8s-cp1, 192.168.56.10)"]
+        apiserver["kube-apiserver (v1.36.4)"]
+        etcd[("etcd v3.5\n(클러스터 상태 분산 저장소)")]
+        sched["kube-scheduler"]
+        cm["kube-controller-manager"]
+        flannelMaster["kube-flannel (CNI DaemonSet)"]
+    end
+
+    subgraph WorkerLayer ["Worker 노드 계층 (k8s-w1: .21 / k8s-w2: .22)"]
+        subgraph Node1 ["k8s-w1 노드"]
+            kubelet1["kubelet"]
+            proxy1["kube-proxy"]
+            cri1["containerd 2.2.1"]
+            subgraph Pods1 ["파드 오케스트레이션 (10.244.1.0/24)"]
+                pod1["resume-web-xxx-1\n(Nginx Web Server)"]
+            end
+        end
+
+        subgraph Node2 ["k8s-w2 노드"]
+            kubelet2["kubelet"]
+            proxy2["kube-proxy"]
+            cri2["containerd 2.2.1"]
+            subgraph Pods2 ["파드 오케스트레이션 (10.244.2.0/24)"]
+                pod2["resume-web-xxx-2\n(Nginx Web Server)"]
+            end
+        end
+    end
+
+    subgraph WorkloadSpec ["워크로드 보안 및 리소스 정책 (Namespace: resume)"]
+        sa["ServiceAccount: service-resume\n(과제 필수 요구조건 바인딩)"]
+        cmHtml["ConfigMap: resume-web-html (18KB)\nsubPath: index.html"]
+        cmAsset["ConfigMap: resume-web-assets\nsubPath: bootstrap css/js"]
+        svc["NodePort Service: resume-web-svc\nNodePort: 30080 -> Port 80"]
+    end
+
+    engineer -->|"Git Commit & Push"| gitea
+    gitea -->|"1. Poll & Detect Diff"| argo
+    argo -->|"2. Server-Side Apply"| apiserver
+    apiserver <--> etcd
+    apiserver --> sched
+    sched -->|"파드 스케줄링"| kubelet1
+    sched -->|"파드 스케줄링"| kubelet2
+
+    pod1 -.-> sa
+    pod2 -.-> sa
+    cmHtml -.->|"Volume Mount (subPath)"| pod1
+    cmAsset -.->|"Volume Mount (subPath)"| pod1
+    cmHtml -.->|"Volume Mount (subPath)"| pod2
+    cmAsset -.->|"Volume Mount (subPath)"| pod2
+
+    svc -->|"트래픽 로드밸런싱"| pod1
+    svc -->|"트래픽 로드밸런싱"| pod2
+
+    client["웹 브라우저 (평가관)"] -->|"접속: 192.168.56.21:30080"| svc

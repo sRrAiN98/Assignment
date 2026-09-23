@@ -1,0 +1,54 @@
+flowchart TB
+    %% =========================================================================
+    %% Kubernetes on Resume Presentation - 인프라 물리 / 가상화 토폴로지 구성도
+    %% =========================================================================
+
+    subgraph HostPC ["호스트 물리 시스템 (Windows 11 Pro 64-bit)"]
+        subgraph Hardware ["물리 하드웨어 리소스"]
+            cpu["CPU: 8 Cores 16 Threads"]
+            mem["RAM: 32GB DDR4/DDR5"]
+            disk["Storage: 1TB NVMe SSD"]
+        end
+
+        subgraph VirtualSwitches ["Hyper-V 가상 스위치 계층"]
+            vSwitchExt["Default Switch (NAT / DHCP)\n외부 패키지 및 런타임 다운로드 전용 (172.19.x.x)"]
+            vSwitchInt["K8s-Internal Switch (Internal Private)\n클러스터 제어 및 파드 VXLAN 통신 전용 (192.168.56.0/24)"]
+        end
+
+        subgraph VirtualMachines ["Hyper-V 가상 머신 계층 (Ubuntu 24.04 LTS)"]
+            subgraph CP1 ["k8s-cp1 (Control Plane)"]
+                cp_spec["2 vCPU / 4GB RAM / 30GB VHDX"]
+                cp_nic1["internet0: 172.19.x.x (DHCP)"]
+                cp_nic2["k8s0: 192.168.56.10 (Static 고정 IP)"]
+            end
+
+            subgraph W1 ["k8s-w1 (Worker Node 1)"]
+                w1_spec["2 vCPU / 4GB RAM / 30GB VHDX"]
+                w1_nic1["internet0: 172.19.x.x (DHCP)"]
+                w1_nic2["k8s0: 192.168.56.21 (Static 고정 IP)"]
+            end
+
+            subgraph W2 ["k8s-w2 (Worker Node 2)"]
+                w2_spec["2 vCPU / 4GB RAM / 30GB VHDX"]
+                w2_nic1["internet0: 172.19.x.x (DHCP)"]
+                w2_nic2["k8s0: 192.168.56.22 (Static 고정 IP)"]
+            end
+        end
+
+        hostNic["Host Virtual Adapter: 192.168.56.1"]
+    end
+
+    evaluator["기술 인터뷰 평가관 / 웹 브라우저"]
+
+    vSwitchExt -.->|"인터넷 아웃바운드"| cp_nic1
+    vSwitchExt -.->|"인터넷 아웃바운드"| w1_nic1
+    vSwitchExt -.->|"인터넷 아웃바운드"| w2_nic1
+
+    vSwitchInt <===>|"클러스터 제어 & VXLAN 패킷"| cp_nic2
+    vSwitchInt <===>|"클러스터 제어 & VXLAN 패킷"| w1_nic2
+    vSwitchInt <===>|"클러스터 제어 & VXLAN 패킷"| w2_nic2
+    vSwitchInt <===> hostNic
+
+    evaluator -->|"웹서비스: http://192.168.56.21:30080"| w1_nic2
+    evaluator -->|"Gitea Git: http://192.168.56.21:30082"| w1_nic2
+    evaluator -->|"Argo CD: http://192.168.56.21:30081"| w1_nic2

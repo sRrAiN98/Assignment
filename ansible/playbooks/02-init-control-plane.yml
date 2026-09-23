@@ -1,0 +1,66 @@
+---
+- name: "Step 2: Control Plane 초기화 및 CNI(Flannel) 배포"
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: kubeadm 초기화 여부 확인
+      ansible.builtin.stat:
+        path: /etc/kubernetes/admin.conf
+      register: k8s_admin_conf
+
+    - name: kubeadm init 실행 (Control Plane 초기화)
+      ansible.builtin.command: >-
+        kubeadm init
+        --apiserver-advertise-address={{ control_plane_ip }}
+        --control-plane-endpoint={{ control_plane_ip }}:6443
+        --pod-network-cidr={{ pod_cidr }}
+        --service-cidr={{ service_cidr }}
+        --cri-socket=unix:///run/containerd/containerd.sock
+      when: not k8s_admin_conf.stat.exists
+      register: kubeadm_init_result
+
+    - name: ubuntu 사용자용 .kube 디렉토리 생성
+      ansible.builtin.file:
+        path: /home/ubuntu/.kube
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: admin.conf를 ubuntu 사용자의 kubeconfig로 복사
+      ansible.builtin.copy:
+        src: /etc/kubernetes/admin.conf
+        dest: /home/ubuntu/.kube/config
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+        remote_src: true
+
+    - name: Flannel CNI 매니페스트 다운로드
+      ansible.builtin.get_url:
+        url: "https://github.com/flannel-io/flannel/releases/download/{{ flannel_version }}/kube-flannel.yml"
+        dest: /tmp/kube-flannel.yml
+        mode: '0644'
+
+    - name: Flannel CNI Dual-NIC 바인딩 옵션(--iface=k8s0) 패치
+      ansible.builtin.replace:
+        path: /tmp/kube-flannel.yml
+        regexp: '(\s+- --kube-subnet-mgr)'
+        replace: "\\1\n        - --iface={{ flannel_interface }}"
+
+    - name: Flannel CNI 적용
+      ansible.builtin.command: kubectl apply -f /tmp/kube-flannel.yml
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: flannel_apply
+      changed_when: "'configured' in flannel_apply.stdout or 'created' in flannel_apply.stdout"
+
+    - name: Worker Node 조인 명령어 생성
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: worker_join_raw
+      changed_when: false
+
+    - name: Join 명령어를 팩트로 저장
+      ansible.builtin.set_fact:
+        kubeadm_join_cmd: "{{ worker_join_raw.stdout }}"

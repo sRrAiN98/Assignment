@@ -1,0 +1,23 @@
+---
+- name: "Step 3: Worker 노드 클러스터 조인"
+  hosts: workers
+  become: true
+
+  tasks:
+    - name: 워커 노드 조인 여부 확인
+      ansible.builtin.stat:
+        path: /etc/kubernetes/kubelet.conf
+      register: kubelet_conf
+
+    - name: Worker Node 클러스터 조인 실행
+      ansible.builtin.command: >-
+        {{ hostvars[groups['control_plane'][0]].kubeadm_join_cmd }}
+        --cri-socket=unix:///run/containerd/containerd.sock
+      when: not kubelet_conf.stat.exists
+      register: kubeadm_join_result
+
+    - name: kubelet 서비스 활성화 및 재시작
+      ansible.builtin.systemd:
+        name: kubelet
+        state: started
+        enabled: true

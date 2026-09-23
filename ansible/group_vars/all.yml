@@ -1,0 +1,22 @@
+---
+# Kubernetes 클러스터 버전 및 네트워크 설정
+kubernetes_minor: "v1.36"
+kubernetes_version: "1.36.4-1.1"
+control_plane_ip: "192.168.56.10"
+pod_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+flannel_version: "v0.28.8"
+flannel_interface: "k8s0"
+
+# 패키지 및 도구 버전
+helm_version: "v3.22.0"
+argocd_chart_version: "10.9.2"
+
+# GitOps 리포지토리 정보 (사설 Gitea 연동)
+gitops_repo_url: "http://gitea-http.gitea.svc:3000/jaehee/osc-k8s-resume.git"
+gitops_target_revision: "main"
+gitops_app_path: "charts/resume-web"
+gitops_namespace: "resume"
+
+# 애플리케이션 보안 요구사항
+app_service_account: "service-resume"

@@ -1,0 +1,60 @@
+---
+- name: "Step 4: Gitea 사설 Git & Argo CD GitOps 파이프라인 배포"
+  hosts: control_plane
+  become: true
+
+  tasks:
+    - name: Helm 3 공식 설치 스크립트 다운로드
+      ansible.builtin.get_url:
+        url: https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3
+        dest: /tmp/get-helm-3
+        mode: '0700'
+
+    - name: Helm 3 바이너리 설치
+      ansible.builtin.command: /tmp/get-helm-3
+      environment:
+        DESIRED_VERSION: "{{ helm_version }}"
+      args:
+        creates: /usr/local/bin/helm
+
+    - name: Gitea 사설 저장소 매니페스트 배포 (NodePort 30082)
+      ansible.builtin.command: kubectl apply -f /home/ubuntu/osc-k8s-resume/manifests/gitea.yaml
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: gitea_deploy
+      changed_when: "'created' in gitea_deploy.stdout or 'configured' in gitea_deploy.stdout"
+      failed_when: false
+
+    - name: Argo CD Helm 저장소 추가 및 업데이트
+      ansible.builtin.command: "{{ item }}"
+      loop:
+        - helm repo add argo https://argoproj.github.io/argo-helm --force-update
+        - helm repo update argo
+      changed_when: false
+
+    - name: Argo CD 배포 (NodePort 30081 활성화)
+      ansible.builtin.command: >-
+        helm upgrade --install argocd argo/argo-cd
+        --namespace argocd --create-namespace
+        --version {{ argocd_chart_version }}
+        --set server.service.type=NodePort
+        --set server.service.nodePortHttp=30081
+        --set server.insecure=true
+        --wait --timeout 10m
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: argocd_install
+      changed_when: "'has been upgraded' in argocd_install.stdout or 'has been installed' in argocd_install.stdout"
+
+    - name: Argo CD Application 매니페스트 적용 (resume-web)
+      ansible.builtin.command: kubectl apply -f /home/ubuntu/osc-k8s-resume/argocd/application-resume.yaml
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      register: argo_app_apply
+      changed_when: "'created' in argo_app_apply.stdout or 'configured' in argo_app_apply.stdout"
+
+    - name: resume 네임스페이스 및 파드 배포 롤아웃 확인
+      ansible.builtin.command: kubectl -n resume rollout status deployment/resume-web --timeout=5m
+      environment:
+        KUBECONFIG: /etc/kubernetes/admin.conf
+      changed_when: false

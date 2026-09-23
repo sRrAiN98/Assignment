@@ -1,0 +1,155 @@
+---
+- name: "Step 1: Kubernetes 노드 공통 OS 최적화 및 런타임 설치"
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: 호스트명 및 클러스터 IP 매핑을 /etc/hosts에 등록
+      ansible.builtin.blockinfile:
+        path: /etc/hosts
+        block: |
+          192.168.56.10 k8s-cp1
+          192.168.56.21 k8s-w1
+          192.168.56.22 k8s-w2
+        marker: "# {mark} ANSIBLE MANAGED K8S HOSTS"
+
+    - name: Swap 메모리 즉시 비활성화
+      ansible.builtin.command: swapoff -a
+      when: ansible_swaptotal_mb > 0
+      changed_when: true
+
+    - name: /etc/fstab에서 swap 마운트 영구 비활성화
+      ansible.builtin.replace:
+        path: /etc/fstab
+        regexp: '^(\s*[^#\s]+\s+[^#\s]+\s+swap\s+.*)$'
+        replace: '# \1'
+
+    - name: Kubernetes 필수 커널 모듈 설정 파일 생성 (/etc/modules-load.d/k8s.conf)
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+        mode: '0644'
+
+    - name: 커널 모듈 즉시 적재
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - overlay
+        - br_netfilter
+
+    - name: 브리지 네트워크 및 패킷 포워딩 sysctl 파라미터 설정
+      ansible.posix.sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+        sysctl_file: /etc/sysctl.d/99-kubernetes-cri.conf
+        reload: true
+      loop:
+        - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+        - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+        - { name: 'net.ipv4.ip_forward', value: '1' }
+
+    - name: 필수 기본 패키지 설치
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+          - containerd
+        state: present
+        update_cache: true
+
+    - name: containerd 기본 설정 디렉토리 생성
+      ansible.builtin.file:
+        path: /etc/containerd
+        state: directory
+        mode: '0755'
+
+    - name: containerd 기본 설정 파일 생성
+      ansible.builtin.command: containerd config default
+      register: containerd_default_config
+      changed_when: false
+
+    - name: containerd config.toml 기록 및 SystemdCgroup 활성화
+      ansible.builtin.copy:
+        dest: /etc/containerd/config.toml
+        content: "{{ containerd_default_config.stdout | regex_replace('(SystemdCgroup = )false', '\\1true') | regex_replace('disabled_plugins = \\[.*cri.*\\]', 'disabled_plugins = []') }}"
+        mode: '0644'
+      notify: Restart containerd
+
+    - name: containerd 서비스 시작 및 활성화
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+
+    - name: Kubernetes 공식 APT 패키지 키링 디렉토리 확인
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Kubernetes 공식 APT 저장소 GPG 키 다운로드
+      ansible.builtin.get_url:
+        url: "https://pkgs.k8s.io/core:/stable:/{{ kubernetes_minor }}/deb/Release.key"
+        dest: /tmp/k8s-release.key
+        mode: '0644'
+
+    - name: GPG 키 dearmor 및 /etc/apt/keyrings에 등록
+      ansible.builtin.command: >-
+        gpg --dearmor --yes -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg /tmp/k8s-release.key
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Kubernetes 공식 APT 저장소 등록
+      ansible.builtin.copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/{{ kubernetes_minor }}/deb/ /
+        mode: '0644'
+
+    - name: Kubernetes 패키지(kubelet, kubeadm, kubectl) 설치
+      ansible.builtin.apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+        update_cache: true
+
+    - name: Kubernetes 패키지 버전 업데이트 고정 (apt-mark hold)
+      ansible.builtin.dpkg_selections:
+        name: "{{ item }}"
+        selection: hold
+      loop:
+        - kubelet
+        - kubeadm
+        - kubectl
+
+    - name: kubelet 노드 전용 IP(k8s0) 바인딩 옵션 설정
+      ansible.builtin.copy:
+        dest: /etc/default/kubelet
+        content: "KUBELET_EXTRA_ARGS=--node-ip={{ k8s_node_ip }}\n"
+        mode: '0644'
+      notify: Restart kubelet
+
+    - name: kubelet 서비스 활성화
+      ansible.builtin.systemd:
+        name: kubelet
+        enabled: true
+
+  handlers:
+    - name: Restart containerd
+      ansible.builtin.systemd:
+        name: containerd
+        state: restarted
+
+    - name: Restart kubelet
+      ansible.builtin.systemd:
+        name: kubelet
+        state: restarted
