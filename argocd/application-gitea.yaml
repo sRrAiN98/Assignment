@@ -8,13 +8,48 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/sRrAiN98/Assignment.git
-    targetRevision: main
-    path: charts/gitea
+    repoURL: https://dl.gitea.com/charts
+    chart: gitea
+    targetRevision: 12.7.0
     helm:
       releaseName: gitea
-      valueFiles:
-        - values.yaml
+      valuesObject:
+        service:
+          http:
+            type: NodePort
+            nodePort: 30082
+          ssh:
+            type: NodePort
+            nodePort: 30022
+        persistence:
+          enabled: false
+        postgresql:
+          enabled: false
+        postgresql-ha:
+          enabled: false
+        valkey-cluster:
+          enabled: false
+        valkey:
+          enabled: false
+        gitea:
+          config:
+            database:
+              DB_TYPE: sqlite3
+            server:
+              ROOT_URL: "http://192.168.56.21:30082/"
+          admin:
+            username: jaehee
+            password: ubuntu1234
+        ingress:
+          enabled: true
+          className: traefik
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: web
+            traefik.ingress.kubernetes.io/router.middlewares: gitea-allow-internal-only@kubernetescrd
+          hosts:
+            - host: git.local
+              paths:
+                - path: /
   destination:
     server: https://kubernetes.default.svc
     namespace: gitea

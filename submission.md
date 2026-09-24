@@ -157,9 +157,9 @@ flowchart TB
 | **코어 제어 계층** | kube-apiserver, etcd, scheduler | `kube-system` / v1.36.4 | 클러스터 상태 선언 및 스케줄링, 분산 키-값 저장 |
 | **네트워크(CNI)** | Flannel CNI | `kube-flannel` / v0.28.8 | VXLAN 터널링 오버레이 (`10.244.0.0/16`), `--iface=k8s0` 바인딩 |
 | **컨테이너 런타임** | containerd | v2.2.1 | `SystemdCgroup=true`, CRI 플러그인 활성화 |
-| **형상 관리(Git)** | Gitea | `gitea` / 1.22 | 클러스터 내부 사설 Git 서버, Argo CD App(`gitea`)으로 배포/관리 (Port `30082`) |
+| **형상 관리(Git)** | Gitea | `gitea` / v12.7.0 | 공식 Helm 차트(`dl.gitea.com`), Argo CD App(`gitea`) 배포 (Port `30082`) |
 | **선언형 CD** | Argo CD | `argocd` / v2.13.0 | 3대 앱(`traefik`, `gitea`, `resume-web`) 전면 GitOps 자동화 (Self-Heal, Prune) |
-| **인그레스(Ingress)** | Traefik Ingress Controller | `traefik` / v3.7 | Argo CD App(`traefik`) 공식 차트 배포, 단일 HTTP 80 L7 라우팅 & IP AllowList |
+| **인그레스(Ingress)** | Traefik Ingress Controller | `traefik` / v41.6.0 | 공식 Helm 차트(`traefik.github.io`), 단일 HTTP 80 L7 라우팅 & IP AllowList |
 | **워크로드** | `resume-web` Deployment | `resume` (2 Replicas) | `k8s-w1`, `k8s-w2`에 고가용성 분산 배치, 비특권(Non-root) 실행, Probe 상태 검증 |
 | **서비스 계정** | **service-resume** | `resume` | **과제 필수 요구사항 반영**: 워크로드 파드에 바인딩된 전용 ServiceAccount |
 | **볼륨/설정** | ConfigMap 2종 | `resume` | HTML(18KB)과 CSS/JS 에셋을 분리하고 `subPath` 볼륨 마운트로 etcd 부하 방지 |

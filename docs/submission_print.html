@@ -402,8 +402,8 @@ flowchart TB
       <tr>
         <td><strong>형상 관리(Git)</strong></td>
         <td>Gitea</td>
-        <td><code>gitea</code> / 1.22</td>
-        <td>클러스터 내부 사설 Git, Argo CD App(<code>gitea</code>)으로 배포/관리 (Port <code>30082</code>)</td>
+        <td><code>gitea</code> / v12.7.0</td>
+        <td>공식 Helm 차트(<code>dl.gitea.com</code>), Argo CD App(<code>gitea</code>) 배포 (Port <code>30082</code>)</td>
       </tr>
       <tr>
         <td><strong>선언형 GitOps</strong></td>
@@ -414,8 +414,8 @@ flowchart TB
       <tr>
         <td><strong>인그레스(Ingress)</strong></td>
         <td>Traefik Ingress Controller</td>
-        <td><code>traefik</code> / v3.7</td>
-        <td>Argo CD App(<code>traefik</code>) 공식 차트 배포, 단일 HTTP 80 L7 라우팅 &amp; IP AllowList</td>
+        <td><code>traefik</code> / v41.6.0</td>
+        <td>공식 Helm 차트(<code>traefik.github.io</code>), 단일 HTTP 80 L7 라우팅 &amp; IP AllowList</td>
       </tr>
       <tr>
         <td><strong>워크로드</strong></td>
