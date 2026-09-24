@@ -80,7 +80,7 @@ flowchart TB
 ```mermaid
 flowchart TD
     subgraph External ["1. 외부 인터넷 (Public Network)"]
-        client["평가관 / 외부 브라우저\nhttp://<도메인> (HTTP Port 80)"]
+        client["평가관 / 외부 브라우저\nhttp://srrain.kro.kr (HTTP Port 80)"]
     end
 
     subgraph GatewayLayer ["2. 엣지 게이트웨이 (인터넷 공유기)"]
@@ -96,18 +96,18 @@ flowchart TD
     end
 
     subgraph K8sServices ["5. 쿠버네티스 워크로드 (L7 라우팅 및 보안 정책)"]
-        resumeSvc["이력서 웹서비스 (resume-web)\n[외부 전체 공개 / Catch-All]"]
-        argoSvc["Argo CD (argocd-server)\n[사설망 IP Allowlist 제한]"]
-        gitSvc["Gitea (gitea-http)\n[사설망 IP Allowlist 제한]"]
+        resumeSvc["이력서 웹서비스 (resume-web)\n[외부 전체 공개 / srrain.kro.kr]"]
+        argoSvc["Argo CD (argocd-server)\n[사설망 허용 / argocd.srrain.kro.kr]"]
+        gitSvc["Gitea (gitea-http)\n[사설망 허용 / git.srrain.kro.kr]"]
     end
 
     client -->|"HTTP GET (Port 80)"| router
     router -->|"1단계 NAT 포워딩"| hostProxy
     hostProxy -->|"2단계 L4 포워딩"| traefik
     
-    traefik -->|"Host: * (기본 라우팅)"| resumeSvc
-    traefik -.->|"Host: argo.local (사설망 허용)"| argoSvc
-    traefik -.->|"Host: git.local (사설망 허용)"| gitSvc
+    traefik -->|"Host: srrain.kro.kr, resume.srrain.kro.kr"| resumeSvc
+    traefik -.->|"Host: argocd.srrain.kro.kr (사설망 허용)"| argoSvc
+    traefik -.->|"Host: git.srrain.kro.kr (사설망 허용)"| gitSvc
 ```
 
 - **최소 권한 및 단일 진입점 원칙**: 여러 개의 NodePort(30080, 30081, 30082)를 외부에 무분별하게 노출하지 않고, 오직 표준 HTTP **`80`번 포트 딱 1개**만 게이트웨이와 방화벽에서 개방하여 공격 표면(Attack Surface)을 최소화했습니다.
@@ -210,14 +210,13 @@ flowchart TB
 
 > **[지시사항] 자신이 구축한 시스템의 웹페이지를 기술하시오.**
 
-| 서비스명 | 접속 주소 (URL) | 인증 계정 정보 | 비고 |
+| 서비스명 | 외부 접속 주소 (도메인) | 내부망 / NodePort 접속 | 비고 |
 | :--- | :--- | :--- | :--- |
-| **이력서 웹 (Traefik Ingress)** | **`http://192.168.56.21:30000`** (또는 외부 도메인:80) | 별도 인증 없음 | Traefik 단일 진입점 라우팅, 포트폴리오 9건 수록 |
-| **이력서 웹 (Direct NodePort)** | `http://192.168.56.21:30080` | 별도 인증 없음 | 워커 2대 파드로 로드밸런싱 |
-| **과제 제출 공식 저장소 (GitHub)** | **`https://github.com/sRrAiN98/Assignment`** | 공개 저장소 | 전체 소스코드, Ansible IaC, Helm 차트, 보고서 PDF 수록 |
-| **상시 확인용 웹 미러 (GitHub Pages)** | **`https://sRrAiN98.github.io/Assignment/`** | 공개 웹페이지 | 로컬 PC 오프라인 시 24시간 열람 가능한 라이브 웹 미러 |
-| **Gitea 사설 GitOps 저장소** | `http://192.168.56.21:30082` | 인터뷰 현장 시연 시 제공 | Traefik IP Allowlist 적용 (내부 사설망만 허용) |
-| **Argo CD 관리 콘솔** | `http://192.168.56.21:30081` | 인터뷰 현장 시연 시 제공 | Traefik IP Allowlist 적용 (내부 사설망만 허용) |
+| **이력서 웹 (메인)** | **`http://srrain.kro.kr`**<br>`http://resume.srrain.kro.kr` | `http://192.168.56.21:30000`<br>`http://192.168.56.21:30080` | Traefik 단일 진입점(Port 80) 라우팅, 실무 프로젝트 9건 수록 |
+| **Gitea 사설 GitOps 저장소** | **`http://git.srrain.kro.kr`** | `http://192.168.56.21:30082` | 클러스터 내부 사설 저장소 (면접 현장 시연) |
+| **Argo CD 관리 콘솔** | **`http://argocd.srrain.kro.kr`** | `http://192.168.56.21:30081` | GitOps 컨트롤러 대시보드 (면접 현장 시연) |
+| **과제 제출 공식 저장소 (GitHub)** | **`https://github.com/sRrAiN98/Assignment`** | - | 전체 소스코드, Ansible IaC, Helm 차트, 보고서 PDF 수록 |
+| **상시 확인용 웹 미러 (GitHub Pages)** | **`https://sRrAiN98.github.io/Assignment/`** | - | 로컬 PC 오프라인 시 24시간 열람 가능한 라이브 웹 미러 |
 
 배포된 웹 애플리케이션은 실제 실무 프로젝트 9건, 핵심 기술 스택, 보유 자격 5종 및 이번 과제 실증 내용을 정리한 기술 포트폴리오입니다. 화면 내 Helm 차트 아키텍처 토글 버튼을 통해 패키징 흐름과 볼륨 마운트 구조를 직접 확인할 수 있으며, 상세한 물리 및 논리 구성도는 본 보고서 1~2절에 수록되어 있습니다.
 

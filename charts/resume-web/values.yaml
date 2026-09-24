@@ -62,6 +62,14 @@ ingress:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web
   hosts:
+    - host: "srrain.kro.kr"
+      paths:
+        - path: /
+          pathType: Prefix
+    - host: "resume.srrain.kro.kr"
+      paths:
+        - path: /
+          pathType: Prefix
     - paths:
         - path: /
           pathType: Prefix

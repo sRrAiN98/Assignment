@@ -58,15 +58,16 @@ osc-k8s-resume/
 
 ---
 
-## 🌐 서비스 접속 URL
+## 🌐 서비스 접속 URL 및 도메인 체계
 
-| 서비스 | 주소 | 비고 |
-| :--- | :--- | :--- |
-| **통합 인그레스 (Traefik)** | `http://192.168.56.21:30000` | 단일 포트 인입 게이트웨이 (외부 80 포워딩 대상) |
-| **이력서 웹서비스** | `http://192.168.56.21:30080` | NodePort 30080 (워커 노드 분산 서빙) |
-| **과제 제출 공식 저장소 (GitHub)** | `https://github.com/sRrAiN98/Assignment` | 공개 소스코드 및 문서 저장소 |
-| **상시 확인용 미러 (GitHub Pages)** | `https://sRrAiN98.github.io/Assignment/` | 로컬 PC 오프라인 시 상시 확인 가능한 웹 미러 |
-| **Gitea 사설 콘솔** | `http://192.168.56.21:30082` | 클러스터 내부 GitOps 저장소 (면접 시연 시 접속) |
-| **Argo CD 관리 콘솔** | `http://192.168.56.21:30081` | GitOps 컨트롤러 (면접 시연 시 접속) |
+외부 단일 인입 도메인(`*.srrain.kro.kr`)을 통해 Traefik Ingress가 서브도메인 기반으로 각 서비스를 라우팅합니다.
+
+| 서비스 | 외부 접속 도메인 (80 Port) | 내부망 / NodePort 접속 | 비고 |
+| :--- | :--- | :--- | :--- |
+| **이력서 웹서비스 (메인)** | `http://srrain.kro.kr`<br>`http://resume.srrain.kro.kr` | `http://192.168.56.21:30080`<br>`http://192.168.56.21:30000` | 이력서 웹 애플리케이션 (기본 Catch-All) |
+| **Gitea 사설 GitOps 저장소** | `http://git.srrain.kro.kr` | `http://192.168.56.21:30082` | 클러스터 내부 사설 저장소 (면접 시연) |
+| **Argo CD 관리 콘솔** | `http://argocd.srrain.kro.kr` | `http://192.168.56.21:30081` | GitOps 컨트롤러 웹 UI (면접 시연) |
+| **과제 제출 공식 저장소 (GitHub)** | `https://github.com/sRrAiN98/Assignment` | - | 소스코드 및 문서 공식 저장소 |
+| **상시 확인용 미러 (GitHub Pages)** | `https://sRrAiN98.github.io/Assignment/` | - | 오프라인 시 상시 열람 가능한 웹 미러 |
 
 자세한 물리/논리 구성도와 엔지니어링 시행착오 및 트러블슈팅 사례는 [docs/submission.md](docs/submission.md) 및 정식 제출용 [docs/Kubernetes_구축결과서_장재희.pdf](docs/Kubernetes_구축결과서_장재희.pdf)를 참고해 주시기 바랍니다.
