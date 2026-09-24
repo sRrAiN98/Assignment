@@ -11,6 +11,8 @@ flannel_interface: "k8s0"
 # 패키지 및 도구 버전
 helm_version: "v3.22.0"
 argocd_chart_version: "10.9.2"
+gitea_chart_version: "12.7.0"
+traefik_chart_version: "41.6.0"
 
 # GitOps 리포지토리 정보 (사설 Gitea 연동)
 gitops_repo_url: "http://gitea-http.gitea.svc:3000/jaehee/osc-k8s-resume.git"

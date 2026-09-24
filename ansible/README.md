@@ -55,11 +55,14 @@ ansible/
 - 추출된 join 명령어로 `k8s-w1`, `k8s-w2`를 클러스터에 안전하게 편입
 - 이미 조인된 노드는 `/etc/kubernetes/kubelet.conf` 검사를 통해 건너뛰도록 멱등성 보장
 
-### Step 4: Gitea & Argo CD GitOps 배포 (`04-deploy-gitops.yml`)
+### Step 4: Traefik, Gitea & Argo CD GitOps 배포 (`04-deploy-gitops.yml`)
 - Helm 3 바이너리 다운로드 및 설치
-- 경량 프라이빗 Git 서버 Gitea 배포 (NodePort `30082`)
 - Argo CD 공식 Helm 차트 배포 (NodePort `30081`)
-- 이력서 웹 애플리케이션(`resume-web`) GitOps Application 리소스 등록 및 롤아웃 상태 모니터링
+- 3대 GitOps Application 일괄 등록 (`argocd/`):
+  1. `traefik`: 공식 Helm 저장소(`traefik.github.io`, v41.6.0) 기반 단일 HTTP 80 L7 인그레스
+  2. `gitea`: 공식 Helm 저장소(`dl.gitea.com`, v12.7.0) 기반 사설 Git 서버 (NodePort `30082`)
+  3. `resume-web`: 실무 포트폴리오 웹 애플리케이션 (`charts/resume-web`)
+- 3개 애플리케이션 파드 롤아웃 상태 자동 검증 및 완료 대기
 
 ---
 

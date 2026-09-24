@@ -38,8 +38,14 @@
       register: argocd_install
       changed_when: "'has been upgraded' in argocd_install.stdout or 'has been installed' in argocd_install.stdout"
 
+    - name: Argo CD Application 매니페스트 디렉터리 대상 노드로 전송
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../argocd/"
+        dest: /tmp/argocd/
+        mode: '0644'
+
     - name: GitOps Applications 일괄 적용 (Traefik, Gitea, Resume-Web)
-      ansible.builtin.command: kubectl apply -f /home/ubuntu/osc-k8s-resume/argocd/
+      ansible.builtin.command: kubectl apply -f /tmp/argocd/
       environment:
         KUBECONFIG: /etc/kubernetes/admin.conf
       register: argo_apps_apply
