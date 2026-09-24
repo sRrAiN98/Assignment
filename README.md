@@ -32,8 +32,10 @@ osc-k8s-resume/
 │   ├── group_vars/               # 버전 및 네트워크 설정 변수
 │   ├── playbooks/                # 01-prepare ~ 04-deploy-gitops, site.yml
 │   └── README.md                 # Ansible 자동화 매뉴얼
-├── argocd/
-│   └── application-resume.yaml   # Gitea 연동 Argo CD Application
+├── argocd/                       # Argo CD 선언적 Application 배포 매니페스트
+│   ├── application-traefik.yaml  # 공식 Traefik v41.6.0 Ingress 컨트롤러
+│   ├── application-gitea.yaml    # 공식 Gitea v12.7.0 사설 GitOps 저장소
+│   └── application-resume.yaml   # 이력서 웹 애플리케이션 Helm 차트 연동
 ├── charts/
 │   └── resume-web/               # 이력서 웹 애플리케이션 표준 Helm 차트
 │       ├── Chart.yaml            # 차트 메타데이터 (v0.1.0)
@@ -42,20 +44,15 @@ osc-k8s-resume/
 │       └── templates/            # k8s 매니페스트 템플릿
 │           ├── deployment.yaml   # subPath 볼륨 마운트 & service-resume 바인딩
 │           ├── service.yaml      # NodePort 30080 서비스
+│           ├── ingress.yaml      # Ingress 라우팅 (Traefik 연동)
 │           ├── serviceaccount.yaml # service-resume 계정 생성
 │           ├── configmap.yaml    # HTML (18KB) ConfigMap
 │           └── configmap-assets.yaml # CSS/JS 에셋 ConfigMap
-├── docs/                         # 아키텍처 다이어그램 및 정식 제출 문서
-│   ├── ARCHITECTURE.md           # 물리/논리 구성도 상세 명세서
+├── docs/                         # 과제 구축 결과서 및 공식 산출물 일원화
+│   ├── submission.md             # 과제 구축 결과보고서 (Markdown 완전판)
 │   ├── Kubernetes_구축결과서_장재희.pdf # 정식 제출용 고품질 결과보고서 PDF
-│   └── diagrams/                 # 독립 Mermaid 원본 소스
-│       ├── physical-topology.mmd # 물리 구성도 다이어그램 소스
-│       ├── logical-topology.mmd  # 논리 구성도 다이어그램 소스
-│       └── helm-architecture.mmd # Helm 패키징 흐름 다이어그램 소스
-├── manifests/
-│   └── gitea.yaml                # 사설 Gitea Git 서버 배포 매니페스트
-├── submission.md                 # 과제 최종 결과 보고서 (Markdown)
-├── submission.pdf                # 과제 최종 결과 보고서 (PDF)
+│   ├── submission_print.html     # 인쇄 및 보고서 템플릿 소스
+│   └── diagrams/                 # 아키텍처 Mermaid 다이어그램 소스
 └── README.md
 ```
 
@@ -65,10 +62,11 @@ osc-k8s-resume/
 
 | 서비스 | 주소 | 비고 |
 | :--- | :--- | :--- |
+| **통합 인그레스 (Traefik)** | `http://192.168.56.21:30000` | 단일 포트 인입 게이트웨이 (외부 80 포워딩 대상) |
 | **이력서 웹서비스** | `http://192.168.56.21:30080` | NodePort 30080 (워커 노드 분산 서빙) |
 | **과제 제출 공식 저장소 (GitHub)** | `https://github.com/sRrAiN98/Assignment` | 공개 소스코드 및 문서 저장소 |
 | **상시 확인용 미러 (GitHub Pages)** | `https://sRrAiN98.github.io/Assignment/` | 로컬 PC 오프라인 시 상시 확인 가능한 웹 미러 |
 | **Gitea 사설 콘솔** | `http://192.168.56.21:30082` | 클러스터 내부 GitOps 저장소 (면접 시연 시 접속) |
 | **Argo CD 관리 콘솔** | `http://192.168.56.21:30081` | GitOps 컨트롤러 (면접 시연 시 접속) |
 
-자세한 물리/논리 구성도와 엔지니어링 시행착오 및 트러블슈팅 사례는 [submission.md](submission.md), [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) 및 [submission.pdf](submission.pdf)를 참고해 주시기 바랍니다.
+자세한 물리/논리 구성도와 엔지니어링 시행착오 및 트러블슈팅 사례는 [docs/submission.md](docs/submission.md) 및 정식 제출용 [docs/Kubernetes_구축결과서_장재희.pdf](docs/Kubernetes_구축결과서_장재희.pdf)를 참고해 주시기 바랍니다.
