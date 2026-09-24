@@ -245,9 +245,8 @@ flowchart TB
     vSwitchInt <===>|"클러스터 패킷 통신"| w2_nic2
     vSwitchInt <===> hostNic
 
-    evaluator -->|"NodePort 30080"| w1_nic2
-    evaluator -->|"Gitea 30082"| w1_nic2
-    evaluator -->|"Argo CD 30081"| w1_nic2
+    evaluator -->|"HTTP Port 80 (단일 포트 인입)"| hostNic
+    hostNic -->|"PortProxy (192.168.56.21:30000 토스)"| w1_nic2
     </div>
   </div>
 
@@ -303,6 +302,49 @@ flowchart TB
   <ul>
     <li><strong>Dual-NIC 격리 토폴로지:</strong> 외부 인터넷 다운로드 전용 NIC(<code>internet0</code>)와 클러스터 내부 통신 전용 NIC(<code>k8s0</code>)를 분리 구성.</li>
     <li><strong>네트워크 안정성:</strong> 호스트 머신의 무선랜(Wi-Fi) 재연결이나 IP 변경에도 내부 가상 스위치(<code>K8s-Internal</code>)에 고정된 <code>192.168.56.0/24</code> 대역을 통해 노드 간 VXLAN 터널링 통신 및 etcd 쿼럼이 100% 무중단 유지됩니다.</li>
+  </ul>
+
+  <h3>1.4 외부 트래픽 인입(End-to-End Ingress) 네트워크 아키텍처</h3>
+  <p>
+    클라우드 관리형 LoadBalancer가 없는 Hyper-V 로컬 환경에서, 외부 인터넷 사용자가 접속할 수 있도록 <strong>[공인 인터넷 ➔ 인터넷 공유기 NAT ➔ 물리 워크스테이션 PortProxy ➔ Hyper-V 내부망 ➔ Traefik Ingress Controller ➔ Pod]</strong>로 이어지는 2단계 패킷 포워딩 및 L7 역방향 프록시 아키텍처를 구축했습니다.
+  </p>
+  <div class="diagram-container">
+    <div class="mermaid">
+flowchart TD
+    subgraph External ["1. 외부 인터넷 (Public Network)"]
+        client["평가관 / 외부 브라우저\nhttp://&lt;도메인&gt; (HTTP Port 80)"]
+    end
+
+    subgraph GatewayLayer ["2. 엣지 게이트웨이 (인터넷 공유기)"]
+        router["인터넷 공유기 (WAN 공인 IP: 211.104.164.109)\nNAT Port Forwarding: TCP 80 ➔ 192.168.31.136:80"]
+    end
+
+    subgraph HostLayer ["3. 물리 호스트 (Windows 11 Workstation)"]
+        hostProxy["Windows Netsh PortProxy (L4)\n0.0.0.0:80 ➔ 192.168.56.21:30000\nWindows Defender 방화벽 80 허용"]
+    end
+
+    subgraph HyperVNetwork ["4. Hyper-V 격리 사설망 (K8s-Internal: 192.168.56.0/24)"]
+        traefik["Traefik Ingress Controller\n(k8s-w1 노드 / NodePort 30000 수신)"]
+    end
+
+    subgraph K8sServices ["5. 쿠버네티스 워크로드 (L7 라우팅 및 보안 정책)"]
+        resumeSvc["이력서 웹서비스 (resume-web)\n[외부 전체 공개 / Catch-All]"]
+        argoSvc["Argo CD (argocd-server)\n[사설망 IP Allowlist 제한]"]
+        gitSvc["Gitea (gitea-http)\n[사설망 IP Allowlist 제한]"]
+    end
+
+    client -->|"HTTP GET (Port 80)"| router
+    router -->|"1단계 NAT 포워딩"| hostProxy
+    hostProxy -->|"2단계 L4 포워딩"| traefik
+    
+    traefik -->|"Host: * (기본 라우팅)"| resumeSvc
+    traefik -.->|"Host: argo.local (사설망 허용)"| argoSvc
+    traefik -.->|"Host: git.local (사설망 허용)"| gitSvc
+    </div>
+  </div>
+  <ul>
+    <li><strong>최소 권한 및 단일 진입점:</strong> 여러 개의 NodePort를 외부에 직접 열지 않고 오직 HTTP 80번 포트 1개만 게이트웨이와 방화벽에서 개방하여 공격 표면(Attack Surface)을 최소화.</li>
+    <li><strong>L7 계층 보안 격리:</strong> Traefik Ingress 앞단에 <code>IPAllowList</code> 미들웨어를 배치하여 이력서 웹사이트만 외부에 공개하고 관리 도구(Gitea, Argo CD)는 외부 접근 시 403 Forbidden으로 원천 차단.</li>
   </ul>
 
   <div class="page-break"></div>
