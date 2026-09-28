@@ -1,0 +1,11 @@
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+.venv/
+.idea/
+.vscode/
+scratch/
+LOCAL_CREDENTIALS.md
+local_credentials.md
+*.env

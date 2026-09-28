@@ -1,0 +1,65 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitea
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://dl.gitea.com/charts
+    chart: gitea
+    targetRevision: 12.7.0
+    helm:
+      releaseName: gitea
+      valuesObject:
+        service:
+          http:
+            type: NodePort
+            nodePort: 30082
+          ssh:
+            type: NodePort
+            nodePort: 30022
+        persistence:
+          enabled: false
+        postgresql:
+          enabled: false
+        postgresql-ha:
+          enabled: false
+        valkey-cluster:
+          enabled: false
+        valkey:
+          enabled: false
+        gitea:
+          config:
+            database:
+              DB_TYPE: sqlite3
+            server:
+              ROOT_URL: "http://git.srrain.kro.kr/"
+          admin:
+            username: jaehee
+            password: ubuntu1234
+        ingress:
+          enabled: true
+          className: traefik
+          annotations:
+            traefik.ingress.kubernetes.io/router.entrypoints: web
+          hosts:
+            - host: git.srrain.kro.kr
+              paths:
+                - path: /
+            - host: git.local
+              paths:
+                - path: /
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitea
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+  revisionHistoryLimit: 5

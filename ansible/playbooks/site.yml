@@ -1,0 +1,17 @@
+---
+# ==============================================================================
+# Master Playbook: Kubernetes Cluster Provisioning & GitOps Pipeline Automation
+# 대상: 3-Node Ubuntu 24.04 LTS (k8s-cp1, k8s-w1, k8s-w2)
+# ==============================================================================
+
+- name: "Phase 1: 모든 노드 OS 최적화 및 containerd / Kubernetes 도구 설치"
+  ansible.builtin.import_playbook: 01-prepare-nodes.yml
+
+- name: "Phase 2: Control Plane 초기화 및 Flannel CNI 구성"
+  ansible.builtin.import_playbook: 02-init-control-plane.yml
+
+- name: "Phase 3: Worker 노드 클러스터 조인"
+  ansible.builtin.import_playbook: 03-join-workers.yml
+
+- name: "Phase 4: Gitea 프라이빗 Git & Argo CD GitOps 배포"
+  ansible.builtin.import_playbook: 04-deploy-gitops.yml

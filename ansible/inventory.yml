@@ -1,0 +1,25 @@
+all:
+  children:
+    k8s_cluster:
+      children:
+        control_plane:
+          hosts:
+            k8s-cp1:
+              ansible_host: 192.168.56.10
+              k8s_node_ip: 192.168.56.10
+              cluster_mac: "00:15:5d:56:00:10"
+        workers:
+          hosts:
+            k8s-w1:
+              ansible_host: 192.168.56.21
+              k8s_node_ip: 192.168.56.21
+              cluster_mac: "00:15:5d:56:00:21"
+            k8s-w2:
+              ansible_host: 192.168.56.22
+              k8s_node_ip: 192.168.56.22
+              cluster_mac: "00:15:5d:56:00:22"
+      vars:
+        ansible_user: ubuntu
+        ansible_become: true
+        ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+        ansible_python_interpreter: /usr/bin/python3
